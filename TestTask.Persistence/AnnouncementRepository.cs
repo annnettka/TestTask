@@ -19,9 +19,12 @@ public class AnnouncementRepository : IAnnouncementStore
         return await _db.Announcements.ToListAsync();
     }
 
-    public async Task<Announcement> GetAsync(Guid id)
+    public async Task<IEnumerable<Announcement>> GetAsync(Guid id)
     {
-        return await _db.Announcements.FindAsync(id);
+        var announcement = await _db.Announcements.FindAsync(id);
+        var samiliarAnnouncements = await GetSimilarAnnouncementAsync(id);
+
+        return new[] { announcement }.Concat(samiliarAnnouncements);
     }
 
     public async Task AddAsync(Announcement announcement)
@@ -38,13 +41,22 @@ public class AnnouncementRepository : IAnnouncementStore
 
     public async Task DeleteAsync(Guid id)
     {
-        var foundedUser = await GetAsync(id);
+        var foundedUser = await _db.Announcements.FindAsync(id);
         _db.Announcements.Remove(foundedUser);
         await _db.SaveChangesAsync();
     }
 
-    public Task<IEnumerable<Announcement>> GetSimilarAnnouncementAsync(Announcement announcement)
+    public async Task<IEnumerable<Announcement>> GetSimilarAnnouncementAsync(Guid id)
     {
-        throw new NotImplementedException();
+        var mainAnnouncement = await _db.Announcements.FindAsync(id);
+        
+        var titleWords = mainAnnouncement.Title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        
+        var announcement = await _db.Announcements
+            .Where(a => a.Id != id && titleWords.Any(word => a.Title.Contains(word)))
+            .OrderByDescending(a => a.DateAdded)
+            .Take(3).ToListAsync();
+
+        return announcement;
     }
 }
