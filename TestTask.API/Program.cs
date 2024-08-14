@@ -1,7 +1,18 @@
+using Microsoft.EntityFrameworkCore;
+using TestTask.Domain.Infrastructure;
+using TestTask.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddScoped<AnnouncementRepository>();
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+});
 
 builder.Services.AddCors();
 
